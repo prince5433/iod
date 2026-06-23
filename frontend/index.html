@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Transaction & Ranking System — A financial transaction processing system with multi-factor ranking, idempotent transactions, and real-time leaderboard.">
+    <title>Transaction & Ranking System | Institute of Digital Risk</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💎</text></svg>">
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- ═══ Header ═══ -->
+    <header class="app-header">
+        <div class="app-logo">
+            <div class="app-logo-icon">💎</div>
+            <h1 class="app-title">Transaction & Ranking System</h1>
+        </div>
+        <p class="app-subtitle">
+            Multi-factor ranked financial transactions with idempotency, rate limiting, and anti-manipulation safeguards
+        </p>
+    </header>
+
+    <!-- ═══ Seed Demo Data ═══ -->
+    <div class="seed-section" id="seed-section">
+        <p class="seed-text">No data yet? Load demo users and transactions to explore the system.</p>
+        <button class="btn btn-outline btn-sm" id="btn-seed" onclick="seedData()">
+            🌱 Load Demo Data
+        </button>
+    </div>
+
+    <!-- ═══ Navigation Tabs ═══ -->
+    <nav class="nav-tabs" role="tablist">
+        <button class="nav-tab active" data-tab="transactions" role="tab" id="tab-transactions" aria-selected="true" onclick="switchTab('transactions')">
+            <span class="nav-tab-icon">💸</span>
+            Transactions
+        </button>
+        <button class="nav-tab" data-tab="summary" role="tab" id="tab-summary" aria-selected="false" onclick="switchTab('summary')">
+            <span class="nav-tab-icon">📊</span>
+            User Summary
+        </button>
+        <button class="nav-tab" data-tab="ranking" role="tab" id="tab-ranking" aria-selected="false" onclick="switchTab('ranking')">
+            <span class="nav-tab-icon">🏆</span>
+            Ranking
+        </button>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TAB 1: Transactions
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="tab-panel active" id="panel-transactions" role="tabpanel">
+        <div class="grid-2">
+            <!-- Transaction Form -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-title-icon blue">💳</span>
+                        New Transaction
+                    </h2>
+                </div>
+
+                <form id="transaction-form" onsubmit="submitTransaction(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="txn-user-id">User ID</label>
+                        <input class="form-input" type="text" id="txn-user-id" 
+                               placeholder="e.g., user_1" required maxlength="100">
+                        <p class="form-hint">New users are auto-created on first transaction</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="txn-type">Type</label>
+                        <select class="form-select" id="txn-type" required>
+                            <option value="credit">💚 Credit (Money In)</option>
+                            <option value="debit">🔴 Debit (Money Out)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="txn-amount">Amount (₹)</label>
+                        <input class="form-input" type="number" id="txn-amount" 
+                               placeholder="e.g., 5000.00" required min="0.01" 
+                               max="1000000" step="0.01">
+                        <p class="form-hint">Max ₹10,00,000 per transaction</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="txn-description">Description</label>
+                        <input class="form-input" type="text" id="txn-description" 
+                               placeholder="e.g., Monthly salary" maxlength="500">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="txn-idempotency-key">Idempotency Key</label>
+                        <div class="idem-key-group">
+                            <input class="form-input" type="text" id="txn-idempotency-key" 
+                                   placeholder="Auto-generated UUID" required maxlength="200" readonly>
+                            <button type="button" class="btn btn-outline btn-sm btn-generate" 
+                                    onclick="regenerateKey()">🔄 New Key</button>
+                        </div>
+                        <p class="form-hint">Unique key to prevent duplicate processing. Same key → same result.</p>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full" id="btn-submit-txn">
+                        Submit Transaction
+                    </button>
+                </form>
+            </div>
+
+            <!-- Transaction Result -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-title-icon emerald">✅</span>
+                        Result
+                    </h2>
+                    <button class="btn btn-outline btn-sm" onclick="clearResult()" id="btn-clear-result">
+                        Clear
+                    </button>
+                </div>
+
+                <div id="transaction-result">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📄</div>
+                        <p class="empty-state-title">No transaction submitted yet</p>
+                        <p class="empty-state-desc">
+                            Submit a transaction using the form to see the result here.
+                            Try submitting the same idempotency key twice to see duplicate detection in action!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TAB 2: User Summary
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-summary" role="tabpanel">
+        <div class="glass-card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <span class="card-title-icon violet">📊</span>
+                    User Financial Summary
+                </h2>
+                <button class="btn btn-outline btn-sm" onclick="loadUsers()" id="btn-refresh-users">
+                    🔄 Refresh Users
+                </button>
+            </div>
+
+            <!-- User Selection -->
+            <p class="form-label" style="margin-bottom: 0.75rem;">Select a user or search by ID</p>
+            <div class="summary-search">
+                <input class="form-input" type="text" id="summary-user-id" 
+                       placeholder="Enter user ID (e.g., user_1)">
+                <button class="btn btn-primary" onclick="fetchSummary()" id="btn-fetch-summary">
+                    🔍 Look Up
+                </button>
+            </div>
+
+            <div class="user-select-grid" id="user-select-grid">
+                <!-- Populated by JS -->
+            </div>
+
+            <!-- Summary Display -->
+            <div id="summary-result">
+                <div class="empty-state">
+                    <div class="empty-state-icon">👤</div>
+                    <p class="empty-state-title">Select a user to view their summary</p>
+                    <p class="empty-state-desc">
+                        Click on a user card above or enter a user ID to see their financial overview.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TAB 3: Ranking
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-ranking" role="tabpanel">
+        <div class="glass-card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <span class="card-title-icon amber">🏆</span>
+                    Leaderboard
+                </h2>
+                <button class="btn btn-outline btn-sm" onclick="fetchRanking()" id="btn-refresh-ranking">
+                    🔄 Refresh
+                </button>
+            </div>
+
+            <!-- Algorithm Info -->
+            <div class="algo-info">
+                <div class="algo-factor">
+                    <div class="algo-factor-weight blue">35%</div>
+                    <div class="algo-factor-name">Volume</div>
+                </div>
+                <div class="algo-factor">
+                    <div class="algo-factor-weight violet">25%</div>
+                    <div class="algo-factor-name">Frequency</div>
+                </div>
+                <div class="algo-factor">
+                    <div class="algo-factor-weight emerald">20%</div>
+                    <div class="algo-factor-name">Consistency</div>
+                </div>
+                <div class="algo-factor">
+                    <div class="algo-factor-weight amber">20%</div>
+                    <div class="algo-factor-name">Recency</div>
+                </div>
+            </div>
+
+            <!-- Ranking Table -->
+            <div id="ranking-result">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🏅</div>
+                    <p class="empty-state-title">No ranking data yet</p>
+                    <p class="empty-state-desc">
+                        Seed demo data or submit transactions to populate the leaderboard.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/static/app.js"></script>
+
+</body>
+</html>
