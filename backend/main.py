@@ -13,9 +13,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 import os
+import mimetypes
+
+# Fix MIME types for Linux deployments (Render, etc.)
+mimetypes.add_type("text/css", ".css")
+mimetypes.add_type("application/javascript", ".js")
 
 from .database import init_db
 from .routes import router
+
 
 
 @asynccontextmanager
