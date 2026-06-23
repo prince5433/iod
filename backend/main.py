@@ -56,11 +56,14 @@ app.add_middleware(
 app.include_router(router)
 
 # Serve frontend static files
-frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
-if os.path.exists(frontend_dir):
-    app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+# Use Path for reliable absolute resolution across all platforms
+from pathlib import Path
+_base_dir = Path(__file__).resolve().parent.parent
+frontend_dir = str(_base_dir / "frontend")
 
-    @app.get("/", include_in_schema=False)
-    async def serve_frontend():
-        """Serve the frontend index.html."""
-        return FileResponse(os.path.join(frontend_dir, "index.html"))
+app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend():
+    """Serve the frontend index.html."""
+    return FileResponse(os.path.join(frontend_dir, "index.html"))
